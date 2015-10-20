@@ -7,11 +7,11 @@ import (
 )
 
 const (
-	Debug = iota
-	Info
-	Warn
-	Err
-	Crit
+	LvlDebug = iota
+	LvlInfo
+	LvlWarn
+	LvlErr
+	LvlCrit
 )
 
 type EventOption func(*baseEvent)
@@ -44,6 +44,7 @@ type baseEvent struct {
 	msg    string
 	metric string
 	ctx    Context
+	crit   int
 }
 
 func (e *baseEvent) Message() string {
@@ -56,6 +57,10 @@ func (e *baseEvent) Metric() string {
 
 func (e *baseEvent) Context() Context {
 	return e.ctx
+}
+
+func (e *baseEvent) Crit() int {
+	return e.crit
 }
 
 func (e *baseEvent) opts(opts []EventOption) {
@@ -76,10 +81,15 @@ func AddContext(ctx Context) EventOption {
 	}
 }
 
+func Crit(crit int) EventOption {
+	return func(e *baseEvent) {
+		e.crit = crit
+	}
+}
+
 type logEvent struct {
 	baseEvent
 	args []interface{}
-	crit int
 }
 
 func (e *logEvent) Message() string {
@@ -124,11 +134,11 @@ func (e *serverEvent) ServerRequest() *http.Request {
 }
 
 func LogEvent(crit int, msg string, args ...interface{}) Event {
-	return &logEvent{baseEvent: baseEvent{msg: msg, ctx: Context{}}, crit: crit, args: args}
+	return &logEvent{baseEvent: baseEvent{msg: msg, ctx: Context{}, crit: crit}, args: args}
 }
 
 func newLogEvent(crit int, msg string, opts ...EventOption) *logEvent {
-	e := &logEvent{baseEvent: baseEvent{msg: msg, ctx: Context{}}, crit: crit}
+	e := &logEvent{baseEvent: baseEvent{msg: msg, ctx: Context{}, crit: crit}}
 	e.opts(opts)
 	return e
 }

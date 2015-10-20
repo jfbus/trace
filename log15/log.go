@@ -18,19 +18,19 @@ func (w *log15Wrapper) Teardown()                       {}
 func (w *log15Wrapper) Child(name string) trace.Wrapper { return w }
 
 func (w *log15Wrapper) Event(e trace.Event) {
-	crit := trace.Debug
+	crit := trace.LvlDebug
 	if ce, ok := e.(trace.CriticityEvent); ok {
 		crit = ce.Crit()
 	}
 
 	switch crit {
-	case trace.Crit:
+	case trace.LvlCrit:
 		w.log.Crit(e.Message(), log.Ctx(e.Context()))
-	case trace.Err:
+	case trace.LvlErr:
 		w.log.Error(e.Message(), log.Ctx(e.Context()))
-	case trace.Warn:
+	case trace.LvlWarn:
 		w.log.Warn(e.Message(), log.Ctx(e.Context()))
-	case trace.Info:
+	case trace.LvlInfo:
 		w.log.Info(e.Message(), log.Ctx(e.Context()))
 	default:
 		w.log.Debug(e.Message(), log.Ctx(e.Context()))

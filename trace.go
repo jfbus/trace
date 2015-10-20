@@ -94,20 +94,20 @@ func (s *Span) Event(e Event, opts ...EventOption) {
 }*/
 
 func (s *Span) Crit(msg string, opts ...EventOption) {
-	s.Event(newLogEvent(Crit, msg, opts...))
+	s.Event(newLogEvent(LvlCrit, msg, opts...))
 }
 
 func (s *Span) Error(msg string, opts ...EventOption) {
-	s.Event(newLogEvent(Err, msg, opts...))
+	s.Event(newLogEvent(LvlErr, msg, opts...))
 }
 
 func (s *Span) Warn(msg string, opts ...EventOption) {
-	s.Event(newLogEvent(Warn, msg, opts...))
+	s.Event(newLogEvent(LvlWarn, msg, opts...))
 }
 
 func (s *Span) Info(msg string, opts ...EventOption) {
-	s.Event(newLogEvent(Info, msg, opts...))
+	s.Event(newLogEvent(LvlInfo, msg, opts...))
 }
 func (s *Span) Debug(msg string, opts ...EventOption) {
-	s.Event(newLogEvent(Debug, msg, opts...))
+	s.Event(newLogEvent(LvlDebug, msg, opts...))
 }
