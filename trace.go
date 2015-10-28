@@ -2,10 +2,10 @@ package trace
 
 import (
 	"net/http"
-	"sync"
 	"time"
 )
 
+// Context defines the context of an event
 type Context map[string]interface{}
 
 func (c Context) add(ns ...Context) {
@@ -19,6 +19,7 @@ func (c Context) add(ns ...Context) {
 	}
 }
 
+// Wrapper wraps a service managing events (logger, tracing system, metrics collection, ...)
 type Wrapper interface {
 	Setup(name string)
 	Teardown()
@@ -26,23 +27,23 @@ type Wrapper interface {
 	Event(e Event)
 }
 
+// A Span is a basic unit of work, having a start time, an event time, and having
+// child spans or events.
 type Span struct {
 	Context Context
 	impl    []Wrapper
 	event   TimespanEvent
 }
 
+// A Trace defines a trace. It is basically a span with a name.
 type Trace struct {
 	Span
-	Name    string
-	Message string
-	Start   time.Time
-	sync.Mutex
-	stats map[string]int
+	Name string
 }
 
 type TraceOption func(*Trace)
 
+// New creates a new trace using a list of wrappers and some options.
 func New(name string, impl []Wrapper, opts ...TraceOption) *Trace {
 	t := &Trace{Span: Span{impl: impl, event: newSpanEvent(name)}}
 	for _, opt := range opts {
@@ -54,17 +55,23 @@ func New(name string, impl []Wrapper, opts ...TraceOption) *Trace {
 	return t
 }
 
+// DefaultContext is a TraceOption that defines a default context that will be used for
+// all spans and events.
 func DefaultContext(ctx Context) TraceOption {
 	return func(t *Trace) {
 		t.Context = ctx
 	}
 }
 
-func FromRequest(req *http.Request) TraceOption {
+// FromHttpRequest is a TraceOption that marks the trace as a server trace.
+func FromHttpRequest(req *http.Request) TraceOption {
 	return func(t *Trace) {
-		t.event = newServerEvent(t.event.Message(), req)
+		t.event = newHttpServerEvent(t.event.Message(), req)
 	}
 }
+
+// BeginSpan starts a new child span. Some additional EventOptions can be set.
+// They will be added to all events in this span.
 func (s *Span) BeginSpan(msg string, opts ...EventOption) *Span {
 	impl := make([]Wrapper, 0, len(s.impl))
 	for _, i := range s.impl {
@@ -73,6 +80,7 @@ func (s *Span) BeginSpan(msg string, opts ...EventOption) *Span {
 	return &Span{Context: s.Context, event: newSpanEvent(msg, opts...), impl: impl}
 }
 
+// End ends a span. It will trigger a span event, with the specified options.
 func (s *Span) End(opts ...EventOption) {
 	s.event.setDuration(time.Since(s.event.Start()))
 	s.Event(s.event, opts...)
@@ -81,6 +89,7 @@ func (s *Span) End(opts ...EventOption) {
 	}
 }
 
+// Event records an event in a span.
 func (s *Span) Event(e Event, opts ...EventOption) {
 	e.opts(opts)
 	e.Context().add(s.Context)
@@ -89,25 +98,27 @@ func (s *Span) Event(e Event, opts ...EventOption) {
 	}
 }
 
-/*func (s *Span) Duration() time.Duration {
-	return s.event.duration
-}*/
-
+// Crit sends a critical log event
 func (s *Span) Crit(msg string, opts ...EventOption) {
 	s.Event(newLogEvent(LvlCrit, msg, opts...))
 }
 
+// Crit sends an error log event
 func (s *Span) Error(msg string, opts ...EventOption) {
 	s.Event(newLogEvent(LvlErr, msg, opts...))
 }
 
+// Crit sends a warning log event
 func (s *Span) Warn(msg string, opts ...EventOption) {
 	s.Event(newLogEvent(LvlWarn, msg, opts...))
 }
 
+// Crit sends an info log event
 func (s *Span) Info(msg string, opts ...EventOption) {
 	s.Event(newLogEvent(LvlInfo, msg, opts...))
 }
+
+// Crit sends a debug log event
 func (s *Span) Debug(msg string, opts ...EventOption) {
 	s.Event(newLogEvent(LvlDebug, msg, opts...))
 }

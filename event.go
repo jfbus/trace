@@ -16,6 +16,7 @@ const (
 
 type EventOption func(*baseEvent)
 
+// Event is the generic event interface
 type Event interface {
 	Message() string
 	Metric() string
@@ -23,6 +24,7 @@ type Event interface {
 	opts([]EventOption)
 }
 
+// TimespanEvent is an event that has a start and a duration
 type TimespanEvent interface {
 	Event
 	Start() time.Time
@@ -30,12 +32,14 @@ type TimespanEvent interface {
 	setDuration(time.Duration)
 }
 
-type CriticityEvent interface {
+// LevelEvent is an event that has a criticity level
+type LevelEvent interface {
 	Event
-	Crit() int
+	Level() int
 }
 
-type ServerEvent interface {
+// HttpServerEvent is a event for a http server request
+type HttpServerEvent interface {
 	TimespanEvent
 	ServerRequest() *http.Request
 }
@@ -44,7 +48,7 @@ type baseEvent struct {
 	msg    string
 	metric string
 	ctx    Context
-	crit   int
+	lvl    int
 }
 
 func (e *baseEvent) Message() string {
@@ -59,8 +63,8 @@ func (e *baseEvent) Context() Context {
 	return e.ctx
 }
 
-func (e *baseEvent) Crit() int {
-	return e.crit
+func (e *baseEvent) Level() int {
+	return e.lvl
 }
 
 func (e *baseEvent) opts(opts []EventOption) {
@@ -69,21 +73,25 @@ func (e *baseEvent) opts(opts []EventOption) {
 	}
 }
 
+// Metric adds a metric to an event. Basic events will be measured with a counter/meter.
+// Span events will be measured with a counter/meter and a timer.
 func Metric(m string) EventOption {
 	return func(e *baseEvent) {
 		e.metric = m
 	}
 }
 
+// AddContext adds some context to the event
 func AddContext(ctx Context) EventOption {
 	return func(e *baseEvent) {
 		e.ctx.add(ctx)
 	}
 }
 
-func Crit(crit int) EventOption {
+// Level sets a cricitity level to an event
+func Level(lvl int) EventOption {
 	return func(e *baseEvent) {
-		e.crit = crit
+		e.lvl = lvl
 	}
 }
 
@@ -133,12 +141,13 @@ func (e *serverEvent) ServerRequest() *http.Request {
 	return e.req
 }
 
-func LogEvent(crit int, msg string, args ...interface{}) Event {
-	return &logEvent{baseEvent: baseEvent{msg: msg, ctx: Context{}, crit: crit}, args: args}
+// LogEvent creates a basic logging event, with a level and a message.
+func LogEvent(lvl int, msg string, args ...interface{}) Event {
+	return &logEvent{baseEvent: baseEvent{msg: msg, ctx: Context{}, lvl: lvl}, args: args}
 }
 
-func newLogEvent(crit int, msg string, opts ...EventOption) *logEvent {
-	e := &logEvent{baseEvent: baseEvent{msg: msg, ctx: Context{}, crit: crit}}
+func newLogEvent(lvl int, msg string, opts ...EventOption) *logEvent {
+	e := &logEvent{baseEvent: baseEvent{msg: msg, ctx: Context{}, lvl: lvl}}
 	e.opts(opts)
 	return e
 }
@@ -149,7 +158,7 @@ func newSpanEvent(msg string, opts ...EventOption) *spanEvent {
 	return e
 }
 
-func newServerEvent(msg string, req *http.Request, opts ...EventOption) *serverEvent {
+func newHttpServerEvent(msg string, req *http.Request, opts ...EventOption) *serverEvent {
 	e := &serverEvent{spanEvent: spanEvent{baseEvent: baseEvent{msg: msg, ctx: Context{}}, start: time.Now()}, req: req}
 	e.opts(opts)
 	return e

@@ -24,6 +24,15 @@ func init() {
 	appdash.RegisterEvent(spanEvent{})
 }
 
+// Wrap generates a Wrapper around an appdash collector
+// 	memStore := appdash.NewMemoryStore()
+// 	store := &appdash.RecentStore{
+// 		MinEvictAge: 60 * time.Second,
+// 		DeleteStore: memStore,
+// 	}
+// 	coll := appdash.NewLocalCollector(store)
+// 	server.RegisterTraceCollector(coll)
+// 	tr := trace.New("name", []trace.Wrapper{appdash_trace.Wrap(appdashColl)})
 func Wrap(coll appdash.Collector) trace.Wrapper {
 	return &appdashWrapper{coll: coll}
 }
@@ -53,7 +62,7 @@ func (w *appdashWrapper) Child(name string) trace.Wrapper {
 }
 
 func (w *appdashWrapper) Event(e trace.Event) {
-	if se, ok := e.(trace.ServerEvent); ok {
+	if se, ok := e.(trace.HttpServerEvent); ok {
 		if se.Duration() > 0 {
 			sse := httptrace.NewServerEvent(se.ServerRequest())
 			sse.ServerRecv = se.Start()

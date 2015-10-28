@@ -9,6 +9,13 @@ import (
 
 type MetricsOption func(*gometricsWrapper)
 
+// Wrap creates a wrapper around a go-metrics registry.
+// All metrics will be extracted from the registry.
+// When an event is received with a Metric(name) option,
+// a metric with the same name will be searched.
+// The following metric types are supported :
+// Meter/Counter (all events) and Timer (span event only)
+//	t := trace.New("name", []trace.Wrapper{gometrics.Wrap(metrics.DefaultRegistry)})
 func Wrap(r metrics.Registry) trace.Wrapper {
 	w := &gometricsWrapper{metrics: map[string]interface{}{}}
 	r.Each(func(name string, metric interface{}) {
