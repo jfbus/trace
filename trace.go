@@ -48,25 +48,19 @@ type Wrapper interface {
 	Event(e Event)
 }
 
-// A Span is a basic unit of work, having a start time, an event time, and having
+// A Trace is a basic unit of work, having a start time, an event time, and having
 // child spans or events.
-type Span struct {
+type Trace struct {
 	Context Context
 	impl    []Wrapper
 	event   TimespanEvent
-}
-
-// A Trace defines a trace. It is basically a span with a name.
-type Trace struct {
-	Span
-	Name string
 }
 
 type TraceOption func(*Trace)
 
 // New creates a new trace using a list of wrappers and some options.
 func New(name string, impl []Wrapper, opts ...TraceOption) *Trace {
-	t := &Trace{Span: Span{impl: impl, event: newSpanEvent(name)}}
+	t := &Trace{impl: impl, event: newSpanEvent(name)}
 	for _, opt := range opts {
 		opt(t)
 	}
@@ -93,53 +87,53 @@ func FromHttpRequest(req *http.Request) TraceOption {
 
 // BeginSpan starts a new child span. Some additional EventOptions can be set.
 // They will be added to all events in this span.
-func (s *Span) BeginSpan(msg string, opts ...EventOption) *Span {
-	impl := make([]Wrapper, 0, len(s.impl))
-	for _, i := range s.impl {
+func (t *Trace) BeginSpan(msg string, opts ...EventOption) *Trace {
+	impl := make([]Wrapper, 0, len(t.impl))
+	for _, i := range t.impl {
 		impl = append(impl, i.Child(msg))
 	}
-	return &Span{Context: s.Context, event: newSpanEvent(msg, opts...), impl: impl}
+	return &Trace{Context: t.Context, event: newSpanEvent(msg, opts...), impl: impl}
 }
 
 // End ends a span. It will trigger a span event, with the specified options.
-func (s *Span) End(opts ...EventOption) {
-	s.event.setDuration(time.Since(s.event.Start()))
-	s.Event(s.event, opts...)
-	for _, i := range s.impl {
+func (t *Trace) End(opts ...EventOption) {
+	t.event.setDuration(time.Since(t.event.Start()))
+	t.Event(t.event, opts...)
+	for _, i := range t.impl {
 		i.Teardown()
 	}
 }
 
 // Event records an event in a span.
-func (s *Span) Event(e Event, opts ...EventOption) {
+func (t *Trace) Event(e Event, opts ...EventOption) {
 	e.opts(opts)
-	e.Context().add(s.Context)
-	for _, i := range s.impl {
+	e.Context().add(t.Context)
+	for _, i := range t.impl {
 		i.Event(e)
 	}
 }
 
 // Crit sends a critical log event
-func (s *Span) Crit(msg string, opts ...EventOption) {
-	s.Event(newLogEvent(LvlCrit, msg, opts...))
+func (t *Trace) Crit(msg string, opts ...EventOption) {
+	t.Event(newLogEvent(LvlCrit, msg, opts...))
 }
 
 // Crit sends an error log event
-func (s *Span) Error(msg string, opts ...EventOption) {
-	s.Event(newLogEvent(LvlErr, msg, opts...))
+func (t *Trace) Error(msg string, opts ...EventOption) {
+	t.Event(newLogEvent(LvlErr, msg, opts...))
 }
 
 // Crit sends a warning log event
-func (s *Span) Warn(msg string, opts ...EventOption) {
-	s.Event(newLogEvent(LvlWarn, msg, opts...))
+func (t *Trace) Warn(msg string, opts ...EventOption) {
+	t.Event(newLogEvent(LvlWarn, msg, opts...))
 }
 
 // Crit sends an info log event
-func (s *Span) Info(msg string, opts ...EventOption) {
-	s.Event(newLogEvent(LvlInfo, msg, opts...))
+func (t *Trace) Info(msg string, opts ...EventOption) {
+	t.Event(newLogEvent(LvlInfo, msg, opts...))
 }
 
 // Crit sends a debug log event
-func (s *Span) Debug(msg string, opts ...EventOption) {
-	s.Event(newLogEvent(LvlDebug, msg, opts...))
+func (t *Trace) Debug(msg string, opts ...EventOption) {
+	t.Event(newLogEvent(LvlDebug, msg, opts...))
 }
