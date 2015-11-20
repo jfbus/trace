@@ -4,7 +4,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/mailjet/trace"
+	"github.com/jfbus/trace"
 	"sourcegraph.com/sourcegraph/appdash"
 	"sourcegraph.com/sourcegraph/appdash/httptrace"
 )

@@ -1,7 +1,7 @@
 package log15
 
 import (
-	"github.com/mailjet/trace"
+	"github.com/jfbus/trace"
 	log "gopkg.in/inconshreveable/log15.v2"
 )
 

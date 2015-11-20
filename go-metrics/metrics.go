@@ -3,7 +3,7 @@ package gometrics
 import (
 	"time"
 
-	"github.com/mailjet/trace"
+	"github.com/jfbus/trace"
 	"github.com/rcrowley/go-metrics"
 )
 
