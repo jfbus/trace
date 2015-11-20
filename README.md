@@ -1,8 +1,10 @@
 # trace
 
-Mailjet tracing library
+Status: development - expect bugs, breaking changes
 
-It wraps :
+Tracing library for Go.
+
+It wraps in a single call :
 
 * logging,
 * metrics,
